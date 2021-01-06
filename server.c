@@ -1,7 +1,7 @@
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/msg.h>
-#include <sys/shm.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <string.h>
 #include <fcntl.h>
@@ -70,7 +70,7 @@ void loadTopicsFromFile() {
 
 void loadClientsFromFile() {
     FILE *in;
-    in = fopen(clientsFilePath, "wb+");
+    in = fopen(clientsFilePath, "a+");
     
     if(in != NULL) {
         struct client c;
@@ -118,7 +118,7 @@ struct loginuser {
 };
 
 int authenticateUser(struct loginuser account, int id) {
-    if(account.password == clients[id].password) {
+    if(!strcmp(account.password, clients[id].password)) {
         printf("User authenticated...\n");
         return 1;
     }
@@ -138,11 +138,59 @@ void registerUser(struct loginuser account) {
 }
 
 //  MAIN
+void* userRegisterRequestHandler() {
+    int mid = msgget(0x160, 0644|IPC_CREAT);
+    struct loginuser _data;
+    while(1) {
+        if(msgrcv(mid, &_data, sizeof(_data) - sizeof(_data.type), 1, 0) > 0) {
+            int authenticated = 0;
+            printf("Data received...\n");
+            for(int i = 0; i < lastClientId; ++i) {
+                printf("Searching: %s\n", clients[i].name);
+                if(!strcmp(clients[i].name, _data.name)) {
+                    printf("User found...\n");
+                    if(authenticateUser(_data, clients[i].id)) {
+                        authenticated = 1;
+                        break;
+                    }else {
+                        authenticated = 1;
+                        break;
+                    }
+                }
+            }
+            if(!authenticated) {
+                printf("User not found...\n");
+                registerUser(_data);
+            }
+        }
+        printf("%d\n", lastClientId);
+    }
+}
+
+void* printUsers() {
+    while(1) {
+        if(lastClientId > 0) {
+            printf("%s\n", clients[lastClientId-1].name);
+        }
+        printf("%d\n", lastClientId);
+        sleep(1);
+    }
+}
 
 int main(int argc, char *argv[]) {
     getPaths();
     loadTopicsFromFile();
     loadClientsFromFile();
+
+    pthread_t lrrequest;
+    int err_0 = pthread_create(&lrrequest, NULL, userRegisterRequestHandler, NULL);
+
+    pthread_t pusers;
+    int err_1 = pthread_create(&pusers, NULL, printUsers, NULL);
+    
+    while(1) {
+        sleep(1);
+    }
     // for(int i = 0; i < lastTopicId; ++i) {
     //     printf("%i\n", topics[i]);
     // }
@@ -154,38 +202,8 @@ int main(int argc, char *argv[]) {
     // Receiving a message with id 1 = login/register request
     // Tutaj trzeba dorobić komunikację między procesem potomnym a macierzystym 
     // Myślałem o pamięci współdzielonej, ale jak nie pójdzie to kolejkami jakoś to zrobimy
-    
-    if(!fork()) {
-        int mid = msgget(0x160, 0644|IPC_CREAT);
-        struct loginuser _data;
-        while(1) {
-            if(msgrcv(mid, &_data, sizeof(_data) - sizeof(_data.type), 1, 0) > 0) {
-                int logged = 0;
-                printf("Data received...\n");
-                for(int i = 0; i < lastClientId; ++i) {
-                    if(clients[i].name == _data.name) {
-                        printf("User found...\n");
-                        if(authenticateUser(_data, clients[i].id)) {
-                            logged = 1;
-                            break;
-                        }
-                    }
-                }
-                if(!logged) {
-                    printf("User not found...\n");
-                    registerUser(_data);
-                }
-            }
-            printf("%d\n", lastClientId);
+ 
 
-        }
-    }
-    while(1) {
-        if(lastClientId > 0) {
-            printf("%s\n", clients[lastClientId].name);
-        }
-        printf("%d\n", lastClientId);
-        sleep(1);
-    }
+
     return 0;
 }
