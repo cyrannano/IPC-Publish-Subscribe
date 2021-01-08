@@ -9,6 +9,8 @@
 #include <unistd.h>
 
 #define ARRMAX 1000
+#define TOPICSMAX 500
+#define PASSMAX 10
 
 // STRUCTS
 
@@ -17,7 +19,7 @@ struct client {
     int id_topic[ARRMAX];
     int id_ignore[ARRMAX];
     char name[ARRMAX];
-    int subscription;
+    int subscription[ARRMAX];
     char password[ARRMAX];
 };
 
@@ -111,10 +113,10 @@ void sendTopicToRecipients() {
 
 struct loginuser {
     long type;
-    int id_topic[ARRMAX];
+    int id_topic[TOPICSMAX];
     char name[ARRMAX];
-    int subscription;
-    char password[ARRMAX];
+    int subscription[TOPICSMAX];
+    char password[PASSMAX];
 };
 
 int authenticateUser(struct loginuser account, int id) {
@@ -126,15 +128,47 @@ int authenticateUser(struct loginuser account, int id) {
     return 0;
 }
 
+int findUser(struct loginuser _data) {
+    for(int i = 0; i < lastClientId; ++i) {
+        printf("Searching: %s\n", clients[i].name);
+        if(!strcmp(clients[i].name, _data.name)) {
+            printf("User found...\n");
+            if(authenticateUser(_data, clients[i].id)) {
+                return i;
+            }else {
+                return -2;
+            }
+        }
+    }
+    return -1;
+}
+
+struct idData {
+    long type;
+    int idx;
+};
+
+void sendUserId(long conId, int uid) {
+    int mid = msgget(0x160, 0644|IPC_CREAT);
+    
+    struct idData _data;
+    _data.type = conId;
+    _data.idx = uid;
+
+    msgsnd(mid, &_data, sizeof(_data.idx), 0);
+}
+
 void registerUser(struct loginuser account) {
     printf("Registering user...\n");
     struct client newclient;
     newclient.id = lastClientId;
     memcpy(newclient.id_topic, account.id_topic, sizeof(account.id_topic));
+    memcpy(newclient.subscription, account.subscription, sizeof(account.subscription));
     strcpy(newclient.name, account.name);
     strcpy(newclient.password, account.password);
-    newclient.subscription = account.subscription;
     addClient(newclient);
+    
+    sendUserId(account.type, newclient.id);
 }
 
 //  MAIN
@@ -142,26 +176,13 @@ void* userRegisterRequestHandler() {
     int mid = msgget(0x160, 0644|IPC_CREAT);
     struct loginuser _data;
     while(1) {
-        if(msgrcv(mid, &_data, sizeof(_data) - sizeof(_data.type), 1, 0) > 0) {
-            int authenticated = 0;
-            printf("Data received...\n");
-            for(int i = 0; i < lastClientId; ++i) {
-                printf("Searching: %s\n", clients[i].name);
-                if(!strcmp(clients[i].name, _data.name)) {
-                    printf("User found...\n");
-                    if(authenticateUser(_data, clients[i].id)) {
-                        authenticated = 1;
-                        break;
-                    }else {
-                        authenticated = 1;
-                        break;
-                    }
-                }
-            }
-            if(!authenticated) {
+        if(msgrcv(mid, &_data, sizeof(_data) - sizeof(_data.type), 0, 0) > 0) {
+            printf("Data received...%d\n", (int)_data.type);
+            int uId = findUser(_data);
+            if(uId == -1) {
                 printf("User not found...\n");
                 registerUser(_data);
-            }
+            }else sendUserId(_data.type, uId);
         }
         printf("%d\n", lastClientId);
     }
@@ -177,6 +198,81 @@ void* printUsers() {
     }
 }
 
+struct imessage {
+    long type;
+    int topicId;
+    struct loginuser user;
+    char content[ARRMAX];
+};
+
+struct omessage {
+    long type;
+    int topicId;
+    char content[ARRMAX];
+};
+
+// + Zmieniłem tak, żeby tworzyć kolejkę dla każdego klienta
+// + id kolejki to "9<id_użytkownika>"
+
+// Zastanowić się czy na pewno robić kolejkę do każdego tematu, czy lepiej zrobić kolejkę dla każdego klienta
+// Raczej dla każdego klienta, łatwiejsze w implementacji
+
+int checkIfBlocked(struct client c, int senderId) {
+    for(int i = 0; i < ARRMAX; ++i) {
+        if(c.id_ignore[i] < 0) break; 
+        if(c.id_ignore[i] == senderId) return 1;
+    }
+    return 0;
+}
+
+int sendMessage(int topicId, int userId, char content[ARRMAX]) {
+    for(int i = 0; i < lastClientId; ++i) {
+        struct client cur = clients[i];
+        if(cur.id == userId) continue;
+        if(cur.subscription[topicId] == 0) continue;
+        if(checkIfBlocked(cur, userId)) continue;
+
+        if(cur.subscription[topicId] > 0) cur.subscription[topicId]--;
+        
+        char userIdChar[ARRMAX];
+        char msgKeyChar[ARRMAX] = "9";
+        sprintf(userIdChar, "%d", cur.id);
+        strcat(msgKeyChar, userIdChar);
+        key_t msgKey = atoi(msgKeyChar);
+        
+        int mid = msgget(msgKey, 0644|IPC_CREAT);
+
+        struct omessage _data;
+
+        strcpy(_data.content, content);
+        _data.topicId = topicId;
+        _data.type = userId;
+
+        return msgsnd(mid, &_data, sizeof(_data) - sizeof(_data.type), 0);
+    }
+    return -1;
+}
+
+void* messageSendRequestHandler() {
+    int mid = msgget(0x170, 0644|IPC_CREAT);
+    struct imessage _data;
+    while(1) {
+        if(msgrcv(mid, &_data, sizeof(_data) - sizeof(_data.type), 1, 0) > 0) {
+            printf("Message received...\n");
+            int uid = findUser(_data.user);
+            if(uid >= 0) {
+                if(sendMessage(_data.topicId, uid, _data.content) == 0) {
+                    printf("Message sent to reciptiens...\n");
+                }else {
+                    printf("Message failed to send...\n");
+                }
+            }else {
+                printf("User not authorised!\n");
+            }
+        }
+    }
+}
+
 int main(int argc, char *argv[]) {
     getPaths();
     loadTopicsFromFile();
@@ -188,9 +284,12 @@ int main(int argc, char *argv[]) {
     pthread_t pusers;
     int err_1 = pthread_create(&pusers, NULL, printUsers, NULL);
     
+    // replaced forks with threads, register/login works, authentication works, reading/writing to files works, TODO: creating data folder
+
     while(1) {
         sleep(1);
     }
+
     // for(int i = 0; i < lastTopicId; ++i) {
     //     printf("%i\n", topics[i]);
     // }
