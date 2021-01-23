@@ -152,7 +152,8 @@ void sendMessage() {
     _data.topicId = topic;
     _data.user = userRemote;
 
-    msgsnd(connection, &_data, sizeof(_data) - sizeof(_data.type), 0);
+    if(!fork())
+        msgsnd(connection, &_data, sizeof(_data) - sizeof(_data.type), 0);
 
     clearConsole();
     printf("\nMessage sent succesfully!\n");
