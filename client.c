@@ -52,7 +52,7 @@ int connection;
 
 void clearConsole() {
     for(int i = 0; i < 50; ++i) {
-        prinf("\n");
+        printf("\n");
     }
 }
 
