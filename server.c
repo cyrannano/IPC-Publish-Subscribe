@@ -14,6 +14,9 @@
 
 // STRUCTS
 
+int lastSendRThreadId = 0;
+pthread_t sendRequestThreads[ARRMAX];
+
 struct client {
     int id;
     int id_topic[ARRMAX];
@@ -21,6 +24,29 @@ struct client {
     char name[ARRMAX];
     int subscription[ARRMAX];
     char password[ARRMAX];
+};
+
+struct loginuser {
+    long type;
+    int id_topic[TOPICSMAX];
+    char name[ARRMAX];
+    int subscription[TOPICSMAX];
+    char password[PASSMAX];
+};
+
+struct imessage {
+    long type;
+    int topicId;
+    struct loginuser user;
+    char content[ARRMAX];
+};
+
+struct omessage {
+    long type;
+    int topicId;
+    int senderId;
+    char senderName[PASSMAX];
+    char content[ARRMAX];
 };
 
 // PATHS
@@ -70,20 +96,6 @@ void loadTopicsFromFile() {
     close(fd);
 }
 
-void loadClientsFromFile() {
-    FILE *in;
-    in = fopen(clientsFilePath, "a+");
-    
-    if(in != NULL) {
-        struct client c;
-        while(fread(&c, sizeof(struct client), 1, in) > 0) {
-            clients[lastClientId++] = c;
-        }
-    }
-
-    fclose(in);
-}
-
 // SAVE DATA TO .DATA FILES
 
 void addTopic(int topicId) {
@@ -110,14 +122,6 @@ void sendTopicToRecipients() {
 
     }
 }
-
-struct loginuser {
-    long type;
-    int id_topic[TOPICSMAX];
-    char name[ARRMAX];
-    int subscription[TOPICSMAX];
-    char password[PASSMAX];
-};
 
 int authenticateUser(struct loginuser account, int id) {
     if(!strcmp(account.password, clients[id].password)) {
@@ -198,18 +202,7 @@ void* printUsers() {
     }
 }
 
-struct imessage {
-    long type;
-    int topicId;
-    struct loginuser user;
-    char content[ARRMAX];
-};
 
-struct omessage {
-    long type;
-    int topicId;
-    char content[ARRMAX];
-};
 
 // + Zmieniłem tak, żeby tworzyć kolejkę dla każdego klienta
 // + id kolejki to "9<id_użytkownika>"
@@ -225,43 +218,58 @@ int checkIfBlocked(struct client c, int senderId) {
     return 0;
 }
 
+int generateUserConnectionKey(struct client cur) {
+    char userIdChar[ARRMAX];
+    char msgKeyChar[ARRMAX] = "9";
+    sprintf(userIdChar, "%d", cur.id);
+    strcat(msgKeyChar, userIdChar);
+    return (key_t)atoi(msgKeyChar);
+}
+
 int sendMessage(int topicId, int userId, char content[ARRMAX]) {
+    int state = -1;
     for(int i = 0; i < lastClientId; ++i) {
         struct client cur = clients[i];
+        printf("S\n");
         if(cur.id == userId) continue;
+        printf("E\n");
         if(cur.subscription[topicId] == 0) continue;
-        if(checkIfBlocked(cur, userId)) continue;
+        printf("N\n");
+        // Sprawdzanie banów generuje błędy, trzeba jakoś poprawić
+        // if(checkIfBlocked(cur, userId)) continue;
+        printf("D\n");
 
         if(cur.subscription[topicId] > 0) cur.subscription[topicId]--;
         
-        char userIdChar[ARRMAX];
-        char msgKeyChar[ARRMAX] = "9";
-        sprintf(userIdChar, "%d", cur.id);
-        strcat(msgKeyChar, userIdChar);
-        key_t msgKey = atoi(msgKeyChar);
+        key_t msgKey = generateUserConnectionKey(cur);
         
         int mid = msgget(msgKey, 0644|IPC_CREAT);
 
         struct omessage _data;
 
+        printf("Sending to: %s\n", clients[i].name);
+
         strcpy(_data.content, content);
         _data.topicId = topicId;
-        _data.type = userId;
+        _data.senderId = userId;
+        strcpy(_data.senderName, clients[i].name);
+        _data.type = 2;
 
-        return msgsnd(mid, &_data, sizeof(_data) - sizeof(_data.type), 0);
+        state = msgsnd(mid, &_data, sizeof(_data) - sizeof(_data.type), 0);
     }
-    return -1;
+    return state;
 }
 
-void* messageSendRequestHandler() {
-    int mid = msgget(0x170, 0644|IPC_CREAT);
+
+void* messageSendRequestHandler(void* mkey) {
+    int mid = msgget((key_t)mkey, 0644|IPC_CREAT);
     struct imessage _data;
     while(1) {
         if(msgrcv(mid, &_data, sizeof(_data) - sizeof(_data.type), 1, 0) > 0) {
             printf("Message received...\n");
             int uid = findUser(_data.user);
             if(uid >= 0) {
-                if(sendMessage(_data.topicId, uid, _data.content) == 0) {
+                if(sendMessage(_data.topicId, uid, _data.content) > 0) {
                     printf("Message sent to reciptiens...\n");
                 }else {
                     printf("Message failed to send...\n");
@@ -273,6 +281,23 @@ void* messageSendRequestHandler() {
     }
 }
 
+
+void loadClientsFromFile() {
+    FILE *in;
+    in = fopen(clientsFilePath, "a+");
+    
+    if(in != NULL) {
+        struct client c;
+        while(fread(&c, sizeof(struct client), 1, in) > 0) {
+            clients[lastClientId++] = c;
+            pthread_create(&sendRequestThreads[lastSendRThreadId++], NULL, messageSendRequestHandler, (void *)generateUserConnectionKey(c));
+        }
+    }
+
+    fclose(in);
+}
+
+
 int main(int argc, char *argv[]) {
     getPaths();
     loadTopicsFromFile();
@@ -283,6 +308,7 @@ int main(int argc, char *argv[]) {
 
     pthread_t pusers;
     int err_1 = pthread_create(&pusers, NULL, printUsers, NULL);
+    
     
     // replaced forks with threads, register/login works, authentication works, reading/writing to files works, TODO: creating data folder
 
