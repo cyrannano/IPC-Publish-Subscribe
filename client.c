@@ -153,6 +153,10 @@ void sendMessage() {
     _data.user = userRemote;
 
     msgsnd(connection, &_data, sizeof(_data) - sizeof(_data.type), 0);
+
+    clearConsole();
+    printf("\nMessage sent succesfully!\n");
+    waitForUserInput();
 }
 
 void subscribeTopic() {
