@@ -179,6 +179,29 @@ void sendUserId(long conId, int uid) {
     msgsnd(mid, &_data, sizeof(_data.idx), 0);
 }
 
+void* messageSendRequestHandler(void* mkey) {
+    int mid = msgget((key_t)mkey, 0644|IPC_CREAT);
+    struct imessage _data;
+    while(1) {
+        if(msgrcv(mid, &_data, sizeof(_data) - sizeof(_data.type), 1, IPC_NOWAIT) > 0) {
+            printf("Message received...\n");
+            int uid = findUser(_data.user);
+            if(uid >= 0) {
+                if(sendMessage(_data.topicId, uid, _data.content) > 0) {
+                    printf("Message sent to reciptiens...\n");
+                }else {
+                    printf("Message failed to send...\n");
+                }
+            }else {
+                printf("User not authorised!\n");
+            }
+        }
+        if(msgrcv(mid, &_data, sizeof(_data) - sizeof(_data.type), 2, IPC_NOWAIT) > 0) {
+            printf("\n User subscription request received! \n");
+        }
+    }
+}
+
 void registerUser(struct loginuser account) {
     printf("Registering user...\n");
     struct client newclient;
@@ -268,31 +291,6 @@ int sendMessage(int topicId, int userId, char content[ARRMAX]) {
     }
     return state;
 }
-
-
-void* messageSendRequestHandler(void* mkey) {
-    int mid = msgget((key_t)mkey, 0644|IPC_CREAT);
-    struct imessage _data;
-    while(1) {
-        if(msgrcv(mid, &_data, sizeof(_data) - sizeof(_data.type), 1, IPC_NOWAIT) > 0) {
-            printf("Message received...\n");
-            int uid = findUser(_data.user);
-            if(uid >= 0) {
-                if(sendMessage(_data.topicId, uid, _data.content) > 0) {
-                    printf("Message sent to reciptiens...\n");
-                }else {
-                    printf("Message failed to send...\n");
-                }
-            }else {
-                printf("User not authorised!\n");
-            }
-        }
-        if(msgrcv(mid, &_data, sizeof(_data) - sizeof(_data.type), 2, IPC_NOWAIT) > 0) {
-            printf("\n User subscription request received! \n");
-        }
-    }
-}
-
 
 void loadClientsFromFile() {
     FILE *in;
