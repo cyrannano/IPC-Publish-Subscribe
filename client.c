@@ -175,7 +175,7 @@ void subscribeTopic() {
     struct subscriptionData _data;
 
     _data.type = 2;
-    _data.subscription = tid;
+    _data.subscription[0] = tid;
     msgsnd(connection, &_data, sizeof(_data) - sizeof(_data.type), 0);
 
     printf("\nSuccessfully subscribed to topic %i!", tid);
