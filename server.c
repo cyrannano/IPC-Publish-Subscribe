@@ -179,6 +179,40 @@ void sendUserId(long conId, int uid) {
     msgsnd(mid, &_data, sizeof(_data.idx), 0);
 }
 
+int sendMessage(int topicId, int userId, char content[ARRMAX]) {
+    int state = -1;
+    for(int i = 0; i < lastClientId; ++i) {
+        struct client cur = clients[i];
+        printf("S\n");
+        if(cur.id == userId) continue;
+        printf("E\n");
+        if(cur.subscription[topicId] == 0) continue;
+        printf("N\n");
+        // Sprawdzanie banów generuje błędy, trzeba jakoś poprawić
+        // if(checkIfBlocked(cur, userId)) continue;
+        printf("D\n");
+
+        if(cur.subscription[topicId] > 0) cur.subscription[topicId]--;
+        
+        key_t msgKey = generateUserConnectionKey(cur);
+        
+        int mid = msgget(msgKey, 0644|IPC_CREAT);
+
+        struct omessage _data;
+
+        printf("Sending to: %s\n", clients[i].name);
+
+        strcpy(_data.content, content);
+        _data.topicId = topicId;
+        _data.senderId = userId;
+        strcpy(_data.senderName, clients[i].name);
+        _data.type = 2;
+
+        state = msgsnd(mid, &_data, sizeof(_data) - sizeof(_data.type), 0);
+    }
+    return state;
+}
+
 void* messageSendRequestHandler(void* mkey) {
     int mid = msgget((key_t)mkey, 0644|IPC_CREAT);
     struct imessage _data;
@@ -255,41 +289,6 @@ int checkIfBlocked(struct client c, int senderId) {
         if(c.id_ignore[i] == senderId) return 1;
     }
     return 0;
-}
-
-
-int sendMessage(int topicId, int userId, char content[ARRMAX]) {
-    int state = -1;
-    for(int i = 0; i < lastClientId; ++i) {
-        struct client cur = clients[i];
-        printf("S\n");
-        if(cur.id == userId) continue;
-        printf("E\n");
-        if(cur.subscription[topicId] == 0) continue;
-        printf("N\n");
-        // Sprawdzanie banów generuje błędy, trzeba jakoś poprawić
-        // if(checkIfBlocked(cur, userId)) continue;
-        printf("D\n");
-
-        if(cur.subscription[topicId] > 0) cur.subscription[topicId]--;
-        
-        key_t msgKey = generateUserConnectionKey(cur);
-        
-        int mid = msgget(msgKey, 0644|IPC_CREAT);
-
-        struct omessage _data;
-
-        printf("Sending to: %s\n", clients[i].name);
-
-        strcpy(_data.content, content);
-        _data.topicId = topicId;
-        _data.senderId = userId;
-        strcpy(_data.senderName, clients[i].name);
-        _data.type = 2;
-
-        state = msgsnd(mid, &_data, sizeof(_data) - sizeof(_data.type), 0);
-    }
-    return state;
 }
 
 void loadClientsFromFile() {
