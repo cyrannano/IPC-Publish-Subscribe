@@ -74,6 +74,14 @@ int lastClientId = 0;
 
 // GET DATA FROM .DATA FILES
 
+int generateUserConnectionKey(struct client cur) {
+    char userIdChar[ARRMAX];
+    char msgKeyChar[ARRMAX] = "9";
+    sprintf(userIdChar, "%d", cur.id);
+    strcat(msgKeyChar, userIdChar);
+    return (key_t)atoi(msgKeyChar);
+}
+
 void getPaths() {
     char topicsFileName[ARRMAX] = "topics.data";
     char clientsFileName[ARRMAX] = "clients.data";
@@ -226,13 +234,6 @@ int checkIfBlocked(struct client c, int senderId) {
     return 0;
 }
 
-int generateUserConnectionKey(struct client cur) {
-    char userIdChar[ARRMAX];
-    char msgKeyChar[ARRMAX] = "9";
-    sprintf(userIdChar, "%d", cur.id);
-    strcat(msgKeyChar, userIdChar);
-    return (key_t)atoi(msgKeyChar);
-}
 
 int sendMessage(int topicId, int userId, char content[ARRMAX]) {
     int state = -1;
