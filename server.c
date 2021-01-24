@@ -49,6 +49,11 @@ struct omessage {
     char content[ARRMAX];
 };
 
+struct subscriptionData {
+    long type;
+    int subscription[TOPICSMAX];
+};
+
 // PATHS
 
 char dataDir[] = "./serverData/";
@@ -94,6 +99,10 @@ void loadTopicsFromFile() {
     }
     lastTopicId = i;
     close(fd);
+}
+
+void alterUserData() {
+
 }
 
 // SAVE DATA TO .DATA FILES
@@ -203,7 +212,6 @@ void* printUsers() {
 }
 
 
-
 // + Zmieniłem tak, żeby tworzyć kolejkę dla każdego klienta
 // + id kolejki to "9<id_użytkownika>"
 
@@ -277,6 +285,9 @@ void* messageSendRequestHandler(void* mkey) {
             }else {
                 printf("User not authorised!\n");
             }
+        }
+        if(msgrcv(mid, &_data, sizeof(_data) - sizeof(_data.type), 2, 0) > 0) {
+            printf("\n User subscription request received! \n");
         }
     }
 }

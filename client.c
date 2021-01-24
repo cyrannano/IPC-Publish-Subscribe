@@ -48,6 +48,11 @@ struct idData {
     int idx;
 };
 
+struct subscriptionData {
+    long type;
+    int subscription[TOPICSMAX];
+};
+
 int connection;
 
 void clearConsole() {
@@ -156,12 +161,25 @@ void sendMessage() {
         msgsnd(connection, &_data, sizeof(_data) - sizeof(_data.type), 0);
 
     clearConsole();
-    printf("\nMessage sent succesfully!\n");
+    printf("\nMessage sent successfully!\n");
     waitForUserInput();
 }
 
 void subscribeTopic() {
+    clearConsole();
+    printf("Type the topic ID, you would like to subscribe to\n");
+    printf("Topic ID:");
+    int tid;
+    scanf("%i", &tid);
 
+    struct subscriptionData _data;
+
+    _data.type = 2;
+    _data.subscription = tid;
+    msgsnd(connection, &_data, sizeof(_data) - sizeof(_data.type), 0);
+
+    printf("\nSuccessfully subscribed to topic %i!", tid);
+    waitForUserInput();
 }
 
 void asyncMessageReceiver() {
