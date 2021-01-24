@@ -245,7 +245,7 @@ void registerUser(struct loginuser account) {
     strcpy(newclient.name, account.name);
     strcpy(newclient.password, account.password);
     addClient(newclient);
-    pthread_create(&sendRequestThreads[lastSendRThreadId++], NULL, messageSendRequestHandler, (void *)generateUserConnectionKey(clients[lastClientId]));
+    pthread_create(&sendRequestThreads[lastSendRThreadId++], NULL, messageSendRequestHandler, (void *)generateUserConnectionKey(clients[lastClientId - 1]));
     sendUserId(account.type, newclient.id);
 }
 
