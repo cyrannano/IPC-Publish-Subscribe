@@ -63,7 +63,8 @@ void clearConsole() {
 
 void waitForUserInput() {
     printf("\nPress <enter> to continue...\n");
-    getchar();
+    // getchar();
+    // Generuje błędy, potrzebna inna implementacja
 }
 
 void generateConnection() {
@@ -155,7 +156,7 @@ void sendMessage() {
 
     _data.type = 1;
     _data.topicId = topic;
-    _data.user = userRemote;
+    memcpy(&_data.user, &userRemote, sizeof(userRemote));
 
     if(!fork())
         msgsnd(connection, &_data, sizeof(_data) - sizeof(_data.type), 0);
@@ -168,7 +169,7 @@ void sendMessage() {
 void subscribeTopic() {
     clearConsole();
     printf("Type the topic ID, you would like to subscribe to\n");
-    printf("Topic ID:");
+    printf("Topic ID: ");
     int tid;
     scanf("%i", &tid);
 

@@ -180,7 +180,7 @@ void registerUser(struct loginuser account) {
     strcpy(newclient.name, account.name);
     strcpy(newclient.password, account.password);
     addClient(newclient);
-    
+    pthread_create(&sendRequestThreads[lastSendRThreadId++], NULL, messageSendRequestHandler, (void *)generateUserConnectionKey(clients[lastClientId-1]));
     sendUserId(account.type, newclient.id);
 }
 
@@ -273,7 +273,7 @@ void* messageSendRequestHandler(void* mkey) {
     int mid = msgget((key_t)mkey, 0644|IPC_CREAT);
     struct imessage _data;
     while(1) {
-        if(msgrcv(mid, &_data, sizeof(_data) - sizeof(_data.type), 1, 0) > 0) {
+        if(msgrcv(mid, &_data, sizeof(_data) - sizeof(_data.type), 1, IPC_NOWAIT) > 0) {
             printf("Message received...\n");
             int uid = findUser(_data.user);
             if(uid >= 0) {
@@ -286,7 +286,7 @@ void* messageSendRequestHandler(void* mkey) {
                 printf("User not authorised!\n");
             }
         }
-        if(msgrcv(mid, &_data, sizeof(_data) - sizeof(_data.type), 2, 0) > 0) {
+        if(msgrcv(mid, &_data, sizeof(_data) - sizeof(_data.type), 2, IPC_NOWAIT) > 0) {
             printf("\n User subscription request received! \n");
         }
     }
