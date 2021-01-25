@@ -230,7 +230,7 @@ void* messageSendRequestHandler(void* mkey) {
                 printf("User not authorised!\n");
             }
         }
-        if(msgrcv(mid, &_data, sizeof(_data) - sizeof(_data.type), 2, IPC_NOWAIT) > 0) {
+        if(msgrcv(mid, &_data, sizeof(_data) - sizeof(_data.type), 3, IPC_NOWAIT) > 0) {
             printf("\n User subscription request received! \n");
         }
     }

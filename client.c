@@ -158,8 +158,7 @@ void sendMessage() {
     _data.topicId = topic;
     memcpy(&_data.user, &userRemote, sizeof(userRemote));
 
-    if(!fork())
-        msgsnd(connection, &_data, sizeof(_data) - sizeof(_data.type), 0);
+    msgsnd(connection, &_data, sizeof(_data) - sizeof(_data.type), 0);
 
     clearConsole();
     printf("\nMessage sent successfully!\n");
@@ -175,7 +174,7 @@ void subscribeTopic() {
 
     struct subscriptionData _data;
 
-    _data.type = 2;
+    _data.type = 3;
     _data.subscription[0] = tid;
     msgsnd(connection, &_data, sizeof(_data) - sizeof(_data.type), 0);
 
@@ -247,3 +246,12 @@ int main(int argc, char *argv[]) {
 
     return 0;
 }
+
+
+
+
+
+// 0 - REJESTRACJA UŻYTKOWNIKA
+// 1 - REQUEST WYSŁANIA WIADOMOŚCI
+// 2 - WIADOMOŚĆ PRZYCHODZĄCA
+// 3 - DODANIE NOWEGO TEMATU DO SUBSKRYBCJI
