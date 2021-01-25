@@ -12,7 +12,7 @@ IPC codes:
 |2|Incoming message | Server | Private tunnel |
 |3|New topic subscription | Client | Private tunnel |
 
-## Compilation
+## Build
 ### Server
 `gcc server.c -o s.out -Wall -lpthread`
 ### Client
