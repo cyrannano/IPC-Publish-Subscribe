@@ -50,7 +50,8 @@ struct idData {
 
 struct subscriptionData {
     long type;
-    int subscription[TOPICSMAX];
+    int topicId;
+    int subscription;
 };
 
 int connection;
@@ -169,13 +170,17 @@ void subscribeTopic() {
     clearConsole();
     printf("Type the topic ID, you would like to subscribe to\n");
     printf("Topic ID: ");
-    int tid;
+    int tid, sub;
     scanf("%i", &tid);
+    printf("\nSelect subscription duration (-1 = lifetime)\n");
+    printf("Duration: ");
+    scanf("%i", &sub);
 
     struct subscriptionData _data;
 
     _data.type = 3;
-    _data.subscription[0] = tid;
+    _data.subscription = sub;
+    _data.topicId = tid;
     msgsnd(connection, &_data, sizeof(_data) - sizeof(_data.type), 0);
 
     // printf("\nSuccessfully subscribed to topic %i!", tid);

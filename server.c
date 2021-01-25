@@ -51,7 +51,8 @@ struct omessage {
 
 struct subscriptionData {
     long type;
-    int subscription[TOPICSMAX];
+    int topicId;
+    int subscription;
 };
 
 // PATHS
@@ -232,6 +233,10 @@ void* messageSendRequestHandler(void* mkey) {
         }
         if(msgrcv(mid, &_data, sizeof(_data) - sizeof(_data.type), 3, IPC_NOWAIT) > 0) {
             printf("\n User subscription request received! \n");
+            int uid = findUser(_data.user);
+            if(uid >= 0) {
+
+            }
         }
     }
 }
