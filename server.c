@@ -217,6 +217,13 @@ int sendMessage(int topicId, int userId, char content[ARRMAX]) {
 void* messageSendRequestHandler(void* mkey) {
     int mid = msgget((key_t)mkey, 0644|IPC_CREAT);
     struct imessage _data;
+    struct subscriptionData _dataSub;
+    
+    char mkc[20];
+    sprintf(mkc, "%d", (int)mkey);
+    mkc[0] = ' ';
+    int curUserId = atoi(mkc);
+
     while(1) {
         if(msgrcv(mid, &_data, sizeof(_data) - sizeof(_data.type), 1, IPC_NOWAIT) > 0) {
             printf("Message received...\n");
@@ -231,12 +238,9 @@ void* messageSendRequestHandler(void* mkey) {
                 printf("User not authorised!\n");
             }
         }
-        if(msgrcv(mid, &_data, sizeof(_data) - sizeof(_data.type), 3, IPC_NOWAIT) > 0) {
+        if(msgrcv(mid, &_dataSub, sizeof(_dataSub) - sizeof(_dataSub.type), 3, IPC_NOWAIT) > 0) {
             printf("\n User subscription request received! \n");
-            int uid = findUser(_data.user);
-            if(uid >= 0) {
-
-            }
+            clients[curUserId].subscription[_dataSub.topicId] = _dataSub.subscription;
         }
     }
 }
