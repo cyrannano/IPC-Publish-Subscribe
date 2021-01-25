@@ -179,8 +179,8 @@ void subscribeTopic() {
     _data.subscription[0] = tid;
     msgsnd(connection, &_data, sizeof(_data) - sizeof(_data.type), 0);
 
-    printf("\nSuccessfully subscribed to topic %i!", tid);
-    waitForUserInput();
+    // printf("\nSuccessfully subscribed to topic %i!", tid);
+    // waitForUserInput();
 }
 
 void asyncMessageReceiver() {
