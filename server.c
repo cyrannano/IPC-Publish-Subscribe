@@ -63,7 +63,7 @@ char clientsFilePath[ARRMAX] = "";
 
 // ARRAYS
 
-int topics[ARRMAX];
+int topics[TOPICSMAX];
 struct client clients[ARRMAX];
 
 // GLOBALS
@@ -110,11 +110,30 @@ void loadTopicsFromFile() {
     close(fd);
 }
 
-void alterUserData() {
-
-}
 
 // SAVE DATA TO .DATA FILES
+
+void alterUserData(struct client toAlter) {
+    printf("Altering user data...\n");
+    FILE *out;
+    out = fopen("./serverData/clients.data", "rw+");
+    
+    struct client f;
+    while(fread(&f, sizeof(struct client), 1, out) != 0) {
+        if(strcmp(f.name, toAlter.name) == 0) {
+            printf("\tUser found...\n");
+            fseek(out, -sizeof(struct client), SEEK_CUR);
+            if(fwrite(&toAlter, sizeof(struct client), 1, out) > 0) {
+                printf("\tUser altered...\n");
+            }else {
+                printf("\tUser alter failed...\n");
+            }
+            break;
+        }
+    }
+
+    fclose(out);
+}
 
 void addTopic(int topicId) {
     topics[lastTopicId++] = topicId;
@@ -208,7 +227,7 @@ int sendMessage(int topicId, int userId, char content[ARRMAX]) {
         _data.senderId = userId;
         strcpy(_data.senderName, clients[i].name);
         _data.type = 2;
-
+        alterUserData(cur);
         state = msgsnd(mid, &_data, sizeof(_data) - sizeof(_data.type), 0);
     }
     return state;
@@ -227,6 +246,7 @@ void* messageSendRequestHandler(void* mkey) {
     while(1) {
         if(msgrcv(mid, &_data, sizeof(_data) - sizeof(_data.type), 1, IPC_NOWAIT) > 0) {
             printf("Message received...\n");
+            printf("Message: %s\n", _data.content);
             int uid = findUser(_data.user);
             if(uid >= 0) {
                 if(sendMessage(_data.topicId, uid, _data.content) > 0) {
@@ -241,6 +261,7 @@ void* messageSendRequestHandler(void* mkey) {
         if(msgrcv(mid, &_dataSub, sizeof(_dataSub) - sizeof(_dataSub.type), 3, IPC_NOWAIT) > 0) {
             printf("\n User subscription request received! \n");
             clients[curUserId].subscription[_dataSub.topicId] = _dataSub.subscription;
+            alterUserData(clients[curUserId]);
         }
     }
 }

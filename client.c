@@ -12,7 +12,7 @@
 #define TOPICSMAX 500
 #define PASSMAX 10
 
-int minusarray[ARRMAX] = {-1};
+int zeroarray[ARRMAX];
 
 struct localUser {
     char name[PASSMAX];
@@ -87,10 +87,8 @@ int registerUser(char uname[ARRMAX], char pass[PASSMAX]) {
 
     int tmp[ARRMAX] = {-1};
     memcpy(userRemote.id_topic, tmp, sizeof(tmp));
-    userRemote.id_topic[0] = 1;
     strcpy(userRemote.name, uname);
     strcpy(userRemote.password, pass);
-    userRemote.subscription[0] = 3;
     
     printf("Hash: %d\n", (int)userRemote.type);
     printf("%d\n", sizeof(userRemote) - sizeof(userRemote.type));
@@ -142,18 +140,21 @@ int login() {
 void sendMessage() {
     clearConsole();
     printf("Which topic ID would you like to use?\n");
-    for(int i = 0; i < TOPICSMAX; ++i) {
-        if(currentUser.id_topic[i] == -1) break;
-        printf("%d\n", currentUser.id_topic[i]);
-    }
+    // for(int i = 0; i < TOPICSMAX; ++i) {
+    //     if(currentUser.id_topic[i] == 0) break;
+    //     printf("%d\n", currentUser.id_topic[i]);
+    // }
     int topic;
-    printf("Select one from given: ");
-    scanf("%i", &topic);
+    printf("Select one: ");
+    scanf("%d", &topic);
 
     struct imessage _data;
 
     printf("Write a message: ");
-    scanf("%s", _data.content);
+    fflush(stdout);
+    scanf("%[^\n]%*c", _data.content);
+    // printf("Write a message: ");
+    // scanf("%s", _data.content);
 
     _data.type = 1;
     _data.topicId = topic;
@@ -216,10 +217,7 @@ int main(int argc, char *argv[]) {
         printf("Oops, let's try again:\n");
     }
     currentUser.id = id;
-    memcpy(currentUser.id_topic, minusarray, sizeof(minusarray));
-    
-    currentUser.id_topic[0] = 1;
-    currentUser.id_topic[1] = 2;
+    memcpy(currentUser.id_topic, zeroarray, sizeof(zeroarray));
 
     generateConnection();
     

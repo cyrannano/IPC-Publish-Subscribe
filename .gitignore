@@ -2,3 +2,4 @@ serverData
 *.data
 *.exe
 *.out
+*_test.c
