@@ -37,6 +37,10 @@ IPC codes:
 - [ ] waitForUserInput() function implementation
 
 # Updates:
+## 26.01.2020 v2
+  - Moved structures to separate header file
+  - Waiting for user input is kinda working. But only for main thread. The trick for other threads is to tell user to type 0 to conitnue
+  - **!BUGFIX!** Messages are not being trimmed no more (fix from 26.01.2020)
 ## 26.01.2020
   - **!BUG!** Messages are being trimmed after last space. Client-side error caused by scanf splittin message on white spaces. Need to think of a solution to that
   - Subscription requests and handling are probably fully working at this point. Need to test more in the future

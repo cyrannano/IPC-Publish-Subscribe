@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <time.h> 
+#include <pthread.h>
 
 #include "structures.h"
 
@@ -25,7 +26,9 @@ void clearConsole() {
 
 void waitForUserInput() {
     printf("\nPress <enter> to continue...\n");
-    // getchar();
+    // char dummy;
+    fgetc(stdin);
+    // scanf(" %[^\n]", dummy);
     // Generuje błędy, potrzebna inna implementacja
 }
 
@@ -113,7 +116,7 @@ void sendMessage() {
 
     printf("Write a message: ");
     fflush(stdout);
-    scanf("%[^\n]%*c", _data.content);
+    scanf(" %[^\n]%*c", _data.content);
     // printf("Write a message: ");
     // scanf("%s", _data.content);
 
@@ -149,7 +152,8 @@ void subscribeTopic() {
     // waitForUserInput();
 }
 
-void asyncMessageReceiver() {
+void* asyncMessageReceiver() {
+    
     struct omessage _data;
     while(1) {
         if(msgrcv(connection, &_data, sizeof(_data) - sizeof(_data.type), 2, 0) > 0) {
@@ -161,9 +165,9 @@ void asyncMessageReceiver() {
             printf("Sender: %s\n", _data.senderName);
             printf("Message:\n");
             printf("--------------------------------\n");
-            printf("Message: %s\n", _data.content);
+            printf("%s\n", _data.content);
             printf("--------------------------------\n\n");
-            waitForUserInput();
+            printf("Type 0 to continue: \n");
         }
     }
 }
@@ -185,9 +189,12 @@ int main(int argc, char *argv[]) {
 
     generateConnection();
     
-    if(!fork()) {
-        asyncMessageReceiver();
-    }
+    pthread_t aMessageRcv;
+    int err_0 = pthread_create(&aMessageRcv, NULL, asyncMessageReceiver, NULL);
+
+    // if(!fork()) {
+    //     asyncMessageReceiver();
+    // }
 
     while(1) {
         clearConsole();
