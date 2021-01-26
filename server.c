@@ -8,52 +8,13 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#define ARRMAX 1000
-#define TOPICSMAX 500
-#define PASSMAX 10
+#include "structures.h"
 
 // STRUCTS
 
 int lastSendRThreadId = 0;
 pthread_t sendRequestThreads[ARRMAX];
 
-struct client {
-    int id;
-    int id_topic[ARRMAX];
-    int id_ignore[ARRMAX];
-    char name[ARRMAX];
-    int subscription[ARRMAX];
-    char password[ARRMAX];
-};
-
-struct loginuser {
-    long type;
-    int id_topic[TOPICSMAX];
-    char name[ARRMAX];
-    int subscription[TOPICSMAX];
-    char password[PASSMAX];
-};
-
-struct imessage {
-    long type;
-    int topicId;
-    struct loginuser user;
-    char content[ARRMAX];
-};
-
-struct omessage {
-    long type;
-    int topicId;
-    int senderId;
-    char senderName[PASSMAX];
-    char content[ARRMAX];
-};
-
-struct subscriptionData {
-    long type;
-    int topicId;
-    int subscription;
-};
 
 // PATHS
 
@@ -184,10 +145,6 @@ int findUser(struct loginuser _data) {
     return -1;
 }
 
-struct idData {
-    long type;
-    int idx;
-};
 
 void sendUserId(long conId, int uid) {
     int mid = msgget(0x160, 0644|IPC_CREAT);

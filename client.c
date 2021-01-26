@@ -8,53 +8,14 @@
 #include <unistd.h>
 #include <time.h> 
 
-#define ARRMAX 1000
-#define TOPICSMAX 500
-#define PASSMAX 10
+#include "structures.h"
 
-int zeroarray[ARRMAX];
-
-struct localUser {
-    char name[PASSMAX];
-    int id_topic[ARRMAX];
-    int id;
-} currentUser;
-
-struct loginuser {
-    long type;
-    int id_topic[TOPICSMAX];
-    char name[ARRMAX];
-    int subscription[TOPICSMAX];
-    char password[PASSMAX];
-} userRemote;
-
-struct imessage {
-    long type;
-    int topicId;
-    struct loginuser user;
-    char content[ARRMAX];
-};
-
-struct omessage {
-    long type;
-    int topicId;
-    int senderId;
-    char senderName[PASSMAX];
-    char content[ARRMAX];
-};
-
-struct idData {
-    long type;
-    int idx;
-};
-
-struct subscriptionData {
-    long type;
-    int topicId;
-    int subscription;
-};
+struct localUser currentUser;
+struct loginuser userRemote;
 
 int connection;
+
+int zeroarray[TOPICSMAX];
 
 void clearConsole() {
     for(int i = 0; i < 50; ++i) {
@@ -207,6 +168,9 @@ void asyncMessageReceiver() {
     }
 }
 
+void blockUser() {
+    
+}
 
 int main(int argc, char *argv[]) {
     clearConsole();
@@ -231,6 +195,7 @@ int main(int argc, char *argv[]) {
         printf("[1] Send a message\n");
         printf("[2] Subscribe to a topic\n");
         printf("[3] Receive messages\n");
+        printf("[4] Block user\n");
         printf("Select task: ");
         int d;
         scanf("%i", &d);
@@ -243,6 +208,9 @@ int main(int argc, char *argv[]) {
                 break;
             case 3:
                 asyncMessageReceiver();
+                break;
+            case 4:
+                blockUser();
                 break;
         }
     }

@@ -3,3 +3,6 @@ serverData
 *.exe
 *.out
 *_test.c
+.vscode
+client
+server
