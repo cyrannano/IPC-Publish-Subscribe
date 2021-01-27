@@ -145,6 +145,17 @@ int findUser(struct loginuser _data) {
     return -1;
 }
 
+int findUserId(char _name[PASSMAX]) {
+    for(int i = 0; i < lastClientId; ++i) {
+        printf("Searching: %s\n", clients[i].name);
+        if(!strcmp(clients[i].name, _name)) {
+            printf("User found...\n");
+            return clients[i].id;
+        }
+    }
+    return -1;
+}
+
 
 void sendUserId(long conId, int uid) {
     int mid = msgget(0x160, 0644|IPC_CREAT);
@@ -156,6 +167,16 @@ void sendUserId(long conId, int uid) {
     msgsnd(mid, &_data, sizeof(_data.idx), 0);
 }
 
+
+int checkIfBlocked(struct client c, int senderId) {
+    for(int i = 0; i < ARRMAX; ++i) {
+        if(c.id_ignore[i] == -1) break; 
+        if(c.id_ignore[i] == senderId) return 1;
+    }
+    return 0;
+}
+
+
 int sendMessage(int topicId, int userId, char content[ARRMAX]) {
     int state = -1;
     for(int i = 0; i < lastClientId; ++i) {
@@ -164,12 +185,14 @@ int sendMessage(int topicId, int userId, char content[ARRMAX]) {
         if(cur.id == userId) continue;
         printf("E\n");
         if(cur.subscription[topicId] == 0) continue;
-        printf("N\n");
+        printf("N %i\n", cur.subscription[topicId]);
         // Sprawdzanie banów generuje błędy, trzeba jakoś poprawić
-        // if(checkIfBlocked(cur, userId)) continue;
+        if(checkIfBlocked(cur, userId)) continue;
         printf("D\n");
 
-        if(cur.subscription[topicId] > 0) cur.subscription[topicId]--;
+        if(cur.subscription[topicId] > 0) {
+            clients[i].subscription[topicId]--;
+        }
         
         key_t msgKey = generateUserConnectionKey(cur);
         
@@ -194,6 +217,7 @@ void* messageSendRequestHandler(void* mkey) {
     int mid = msgget((key_t)mkey, 0644|IPC_CREAT);
     struct imessage _data;
     struct subscriptionData _dataSub;
+    struct blockPacket _dataBlock;
     
     char mkc[20];
     sprintf(mkc, "%d", (int)mkey);
@@ -220,6 +244,17 @@ void* messageSendRequestHandler(void* mkey) {
             clients[curUserId].subscription[_dataSub.topicId] = _dataSub.subscription;
             alterUserData(clients[curUserId]);
         }
+        if(msgrcv(mid, &_dataBlock, sizeof(_dataBlock) - sizeof(_dataBlock.type), 4, IPC_NOWAIT) > 0) {
+            int _id = findUserId(_dataBlock.name);
+            for(int i = 0; i < ARRMAX; ++i) {
+                if(clients[curUserId].id_ignore[i] == -1 && i != ARRMAX - 1) {
+                    clients[curUserId].id_ignore[i] = _id;
+                    clients[curUserId].id_ignore[i + 1] = -1;
+                    break;
+                }
+            }
+            alterUserData(clients[curUserId]);
+        }   
     }
 }
 
@@ -231,6 +266,7 @@ void registerUser(struct loginuser account) {
     memcpy(newclient.subscription, account.subscription, sizeof(account.subscription));
     strcpy(newclient.name, account.name);
     strcpy(newclient.password, account.password);
+    newclient.id_ignore[0] = -1;
     addClient(newclient);
     pthread_create(&sendRequestThreads[lastSendRThreadId++], NULL, messageSendRequestHandler, (void *)generateUserConnectionKey(clients[lastClientId - 1]));
     sendUserId(account.type, newclient.id);
@@ -270,14 +306,6 @@ void* printUsers() {
 // Zastanowić się czy na pewno robić kolejkę do każdego tematu, czy lepiej zrobić kolejkę dla każdego klienta
 // Raczej dla każdego klienta, łatwiejsze w implementacji
 
-int checkIfBlocked(struct client c, int senderId) {
-    for(int i = 0; i < ARRMAX; ++i) {
-        if(c.id_ignore[i] < 0) break; 
-        if(c.id_ignore[i] == senderId) return 1;
-    }
-    return 0;
-}
-
 void loadClientsFromFile() {
     FILE *in;
     in = fopen(clientsFilePath, "a+");
@@ -302,8 +330,8 @@ int main(int argc, char *argv[]) {
     pthread_t lrrequest;
     int err_0 = pthread_create(&lrrequest, NULL, userRegisterRequestHandler, NULL);
 
-    pthread_t pusers;
-    int err_1 = pthread_create(&pusers, NULL, printUsers, NULL);
+    // pthread_t pusers;
+    // int err_1 = pthread_create(&pusers, NULL, printUsers, NULL);
     
     
     // replaced forks with threads, register/login works, authentication works, reading/writing to files works, TODO: creating data folder

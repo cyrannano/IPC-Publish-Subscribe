@@ -148,8 +148,8 @@ void subscribeTopic() {
     _data.topicId = tid;
     msgsnd(connection, &_data, sizeof(_data) - sizeof(_data.type), 0);
 
-    // printf("\nSuccessfully subscribed to topic %i!", tid);
-    // waitForUserInput();
+    printf("\nSuccessfully subscribed to topic %i!", tid);
+    waitForUserInput();
 }
 
 void* asyncMessageReceiver() {
@@ -173,7 +173,21 @@ void* asyncMessageReceiver() {
 }
 
 void blockUser() {
-    
+    struct blockPacket _data;
+    clearConsole();
+    printf("=================\n");
+    printf("Block user\n");
+    printf("=================\n");
+    printf("Type username you would like to block\n");
+    printf("Username: ");
+    scanf("%s", _data.name);
+
+    _data.type = 4;
+
+    msgsnd(connection, &_data, sizeof(_data) - sizeof(_data.type), 0);
+    clearConsole();
+    printf("User %s blocked successfully\n", _data.name);
+    waitForUserInput();
 }
 
 int main(int argc, char *argv[]) {

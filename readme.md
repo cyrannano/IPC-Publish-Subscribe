@@ -11,6 +11,7 @@ IPC codes:
 |1|User send message request | Client | Private tunnel |
 |2|Incoming message | Server | Private tunnel |
 |3|New topic subscription | Client | Private tunnel |
+|4|Block user request | Client | Private tunnel |
 
 ## Build
 ### Server
@@ -26,17 +27,21 @@ IPC codes:
 - [x] Server message request handler
 - [x] Saving changes to clients.data file
 - [x] Server subscription request handler
-- [ ] Block request handler
+- [x] Block request handler
 
 ## Client side:
 - [x] User login / registration
 - [x] User send message request
 - [x] User subscription request
-- [ ] Block user request
+- [x] Block user request
 - [ ] Improve UI
-- [ ] waitForUserInput() function implementation
+- [x] waitForUserInput() function implementation
 
 # Updates:
+## 27.01.2020
+  - Fixed *checkIfBlocked* function
+  - Implemented user blocking funtion - client side
+  - Implemented user blocking funtion - server side
 ## 26.01.2020 v2
   - Moved structures to separate header file
   - Waiting for user input is kinda working. But only for main thread. The trick for other threads is to tell user to type 0 to conitnue

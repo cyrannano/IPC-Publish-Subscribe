@@ -22,7 +22,7 @@ struct client {
 struct loginuser {
     long type;
     int id_topic[TOPICSMAX];
-    char name[ARRMAX];
+    char name[PASSMAX];
     int subscription[TOPICSMAX];
     char password[PASSMAX];
 };
@@ -52,4 +52,9 @@ struct localUser {
     char name[PASSMAX];
     int id_topic[ARRMAX];
     int id;
+};
+
+struct blockPacket {
+    long type;
+    char name[PASSMAX];
 };
