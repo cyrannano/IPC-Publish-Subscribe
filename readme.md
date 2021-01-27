@@ -28,20 +28,23 @@ IPC codes:
 - [x] Saving changes to clients.data file
 - [x] Server subscription request handler
 - [x] Block request handler
+- [ ] Blocking client on too many login attempts
 
 ## Client side:
 - [x] User login / registration
 - [x] User send message request
 - [x] User subscription request
 - [x] Block user request
-- [ ] Improve UI
 - [x] waitForUserInput() function implementation
+- [ ] Client behaviour on login block 
+- [ ] Improve UI
 
 # Updates:
-## 27.01.2020
+## 27.01.2020 v1
   - Fixed *checkIfBlocked* function
   - Implemented user blocking funtion - client side
   - Implemented user blocking funtion - server side
+  - Used new IPC code "4"
 ## 26.01.2020 v2
   - Moved structures to separate header file
   - Waiting for user input is kinda working. But only for main thread. The trick for other threads is to tell user to type 0 to conitnue
