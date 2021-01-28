@@ -27,6 +27,7 @@ void clearConsole() {
 void waitForUserInput() {
     printf("\nPress <enter> to continue...\n");
     // char dummy;
+    fflush(stdout);
     fgetc(stdin);
     // scanf(" %[^\n]", dummy);
     // Generuje błędy, potrzebna inna implementacja
@@ -54,14 +55,14 @@ int registerUser(char uname[ARRMAX], char pass[PASSMAX]) {
     strcpy(userRemote.name, uname);
     strcpy(userRemote.password, pass);
     
-    printf("Hash: %d\n", (int)userRemote.type);
-    printf("%d\n", sizeof(userRemote) - sizeof(userRemote.type));
+    // printf("Hash: %d\n", (int)userRemote.type);
+    // printf("%d\n", sizeof(userRemote) - sizeof(userRemote.type));
     msgsnd(mid, &userRemote, sizeof(userRemote) - sizeof(userRemote.type), 0);
 
     struct idData uid_data;
 
     if(msgrcv(mid, &uid_data, sizeof(uid_data.idx), userRemote.type, 0) > 0) {
-        printf("Assigned ID: %d\n", uid_data.idx);
+        // printf("Assigned ID: %d\n", uid_data.idx);
         return uid_data.idx;
     }
     return -1;
@@ -70,9 +71,9 @@ int registerUser(char uname[ARRMAX], char pass[PASSMAX]) {
 int login() {
     char pass[PASSMAX];
     printf("username: ");
-    scanf("%s", currentUser.name);    
+    scanf("%s%*c", currentUser.name);    
     printf("password: ");
-    scanf("%s", pass);
+    scanf("%s%*c", pass);
 
     return registerUser(currentUser.name, pass);
 }
@@ -136,10 +137,10 @@ void subscribeTopic() {
     printf("Type the topic ID, you would like to subscribe to\n");
     printf("Topic ID: ");
     int tid, sub;
-    scanf("%i", &tid);
-    printf("\nSelect subscription duration (-1 = lifetime)\n");
+    scanf("%i%*c", &tid);
+    printf("\nSelect subscription duration\n\t(-1 = lifetime)\n\t(0 = unsubscribe)\n");
     printf("Duration: ");
-    scanf("%i", &sub);
+    scanf("%i%*c", &sub);
 
     struct subscriptionData _data;
 
@@ -180,7 +181,7 @@ void blockUser() {
     printf("=================\n");
     printf("Type username you would like to block\n");
     printf("Username: ");
-    scanf("%s", _data.name);
+    scanf("%s%*c", _data.name);
 
     _data.type = 4;
 
@@ -190,36 +191,64 @@ void blockUser() {
     waitForUserInput();
 }
 
-int main(int argc, char *argv[]) {
+void unblockUser() {
+    struct blockPacket _data;
+    clearConsole();
+    printf("=================\n");
+    printf("Unblock user\n");
+    printf("=================\n");
+    printf("Type username you would like to unblock\n");
+    printf("Username: ");
+    scanf("%s%*c", _data.name);
+
+    _data.type = 5;
+
+    msgsnd(connection, &_data, sizeof(_data) - sizeof(_data.type), 0);
+    clearConsole();
+    printf("User %s unblocked successfully\n", _data.name);
+    waitForUserInput();
+}
+
+pthread_t aMessageRcv;
+
+void logout() {
     clearConsole();
     printf("Hello! Let's log you in!\n=================\n\n");
     int id;
     while((id = login()) < 0) {
-        printf("Wrong username or password!\n");
-        printf("Oops, let's try again:\n");
+        clearConsole();
+        printf("\nWrong username or password!\n");
+        printf("Oops, let's try again:\n\n");
     }
     currentUser.id = id;
     memcpy(currentUser.id_topic, zeroarray, sizeof(zeroarray));
 
     generateConnection();
     
-    pthread_t aMessageRcv;
     int err_0 = pthread_create(&aMessageRcv, NULL, asyncMessageReceiver, NULL);
+}
 
+int main(int argc, char *argv[]) {
+    
+    logout();
     // if(!fork()) {
     //     asyncMessageReceiver();
     // }
 
     while(1) {
         clearConsole();
+        printf("Hello, %s\n", currentUser.name);
         printf("What would you like to do?\n");
         printf("[1] Send a message\n");
         printf("[2] Subscribe to a topic\n");
         printf("[3] Receive messages\n");
         printf("[4] Block user\n");
+        printf("[5] Unblock user\n");
+        printf("[6] Log out\n");
+        printf("[7] Exit\n");
         printf("Select task: ");
         int d;
-        scanf("%i", &d);
+        scanf("%i%*c", &d);
         switch(d) {
             case 1:
                 sendMessage();
@@ -233,6 +262,14 @@ int main(int argc, char *argv[]) {
             case 4:
                 blockUser();
                 break;
+            case 5:
+                unblockUser();
+                break;
+            case 6:
+                logout();
+                break;
+            case 7:
+                return 0;
         }
     }
 

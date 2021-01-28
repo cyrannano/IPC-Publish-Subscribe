@@ -205,7 +205,7 @@ int sendMessage(int topicId, int userId, char content[ARRMAX]) {
         strcpy(_data.content, content);
         _data.topicId = topicId;
         _data.senderId = userId;
-        strcpy(_data.senderName, clients[i].name);
+        strcpy(_data.senderName, clients[userId].name);
         _data.type = 2;
         alterUserData(cur);
         state = msgsnd(mid, &_data, sizeof(_data) - sizeof(_data.type), 0);
@@ -252,9 +252,33 @@ void* messageSendRequestHandler(void* mkey) {
                     clients[curUserId].id_ignore[i + 1] = -1;
                     break;
                 }
+                if(clients[curUserId].id_ignore[i] == _id) {
+                    break;
+                }
             }
             alterUserData(clients[curUserId]);
-        }   
+        }
+        if(msgrcv(mid, &_dataBlock, sizeof(_dataBlock) - sizeof(_dataBlock.type), 5, IPC_NOWAIT) > 0) {
+            int _id = findUserId(_dataBlock.name);
+            int found = 0;
+            for(int i = 0; i < ARRMAX; ++i) {
+                if(clients[curUserId].id_ignore[i] == _id && !found) {
+                    found = 1;
+                    continue;
+                }
+
+                if(!found && clients[curUserId].id_ignore[i] == -1) break;
+
+                if(found) {
+                    clients[curUserId].id_ignore[i - 1] = clients[curUserId].id_ignore[i];
+                    if(clients[curUserId].id_ignore[i] == -1) {
+                        clients[curUserId].id_ignore[i] = 0;
+                        break;
+                    }
+                }
+            }       
+            alterUserData(clients[curUserId]);
+        }  
     }
 }
 

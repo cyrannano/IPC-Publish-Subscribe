@@ -12,6 +12,7 @@ IPC codes:
 |2|Incoming message | Server | Private tunnel |
 |3|New topic subscription | Client | Private tunnel |
 |4|Block user request | Client | Private tunnel |
+|5|Unblock user request | Client | Private tunnel |
 
 ## Build
 ### Server
@@ -28,6 +29,7 @@ IPC codes:
 - [x] Saving changes to clients.data file
 - [x] Server subscription request handler
 - [x] Block request handler
+- [x] Unblock request handler
 - [ ] Blocking client on too many login attempts
 
 ## Client side:
@@ -35,11 +37,17 @@ IPC codes:
 - [x] User send message request
 - [x] User subscription request
 - [x] Block user request
+- [x] Unblock user request
 - [x] waitForUserInput() function implementation
 - [ ] Client behaviour on login block 
 - [ ] Improve UI
 
 # Updates:
+## 28.01.2020 v1
+  - Added unblock functionality
+  - Improved UI
+  - Used new IPC code "5"
+  - Improved waiting for user input thanks to ignoring newline character in scanf inputs using *%\*c*
 ## 27.01.2020 v1
   - Fixed *checkIfBlocked* function
   - Implemented user blocking funtion - client side
