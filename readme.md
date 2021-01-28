@@ -43,20 +43,20 @@ IPC codes:
 - [ ] Improve UI
 
 # Updates:
-## 28.01.2020 v1
+## 28.01.2021 v1
   - Added unblock functionality
   - Improved UI
   - Used new IPC code "5"
   - Improved waiting for user input thanks to ignoring newline character in scanf inputs using *%\*c*
-## 27.01.2020 v1
+## 27.01.2021 v1
   - Fixed *checkIfBlocked* function
   - Implemented user blocking funtion - client side
   - Implemented user blocking funtion - server side
   - Used new IPC code "4"
-## 26.01.2020 v2
+## 26.01.2021 v2
   - Moved structures to separate header file
   - Waiting for user input is kinda working. But only for main thread. The trick for other threads is to tell user to type 0 to conitnue
-  - **!BUGFIX!** Messages are not being trimmed no more (fix from 26.01.2020)
-## 26.01.2020
+  - **!BUGFIX!** Messages are not being trimmed no more (fix from 26.01.2021)
+## 26.01.2021
   - **!BUG!** Messages are being trimmed after last space. Client-side error caused by scanf splittin message on white spaces. Need to think of a solution to that
   - Subscription requests and handling are probably fully working at this point. Need to test more in the future
