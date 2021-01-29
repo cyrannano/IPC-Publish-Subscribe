@@ -8,6 +8,7 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <stdint.h>
 
 #include "structures.h"
 
@@ -24,9 +25,11 @@ char topicsFilePath[ARRMAX] = "";
 char clientsFilePath[ARRMAX] = "";
 
 // ARRAYS
-
+int arrMaxEmptyArray[ARRMAX];
 int topics[TOPICSMAX];
 struct client clients[ARRMAX];
+int loginBlock[ARRMAX];
+int failedLoginAttempts[ARRMAX];
 
 // GLOBALS
 
@@ -136,10 +139,21 @@ int findUser(struct loginuser _data) {
         printf("Searching: %s\n", clients[i].name);
         if(!strcmp(clients[i].name, _data.name)) {
             printf("User found...\n");
+            if(loginBlock[i] > 0) return -9;
             if(authenticateUser(_data, clients[i].id)) {
+                failedLoginAttempts[i] = 0;
                 return i;
             }else {
-                return -2;
+                if(failedLoginAttempts[i] > 2) {
+                    printf("Login for user %s has been blocked\n", clients[i].name);
+                    loginBlock[i] = 60;
+                    failedLoginAttempts[i] = 0;
+                    return -9;
+                }else {
+                    printf("User: %s failed login attempts: %i\n", clients[i].name, failedLoginAttempts[i]+1);
+                    failedLoginAttempts[i]++;
+                    return failedLoginAttempts[i]*(-1) - 10;
+                }
             }
         }
     }
@@ -215,13 +229,13 @@ int sendMessage(int topicId, int userId, char content[ARRMAX]) {
 }
 
 void* messageSendRequestHandler(void* mkey) {
-    int mid = msgget((key_t)mkey, 0644|IPC_CREAT);
+    int mid = msgget((uintptr_t)mkey, 0644|IPC_CREAT);
     struct imessage _data;
     struct subscriptionData _dataSub;
     struct blockPacket _dataBlock;
     
     char mkc[20];
-    sprintf(mkc, "%d", (int)mkey);
+    sprintf(mkc, "%d", (int)(uintptr_t)mkey);
     mkc[0] = ' ';
     int curUserId = atoi(mkc);
 
@@ -293,7 +307,7 @@ void registerUser(struct loginuser account) {
     strcpy(newclient.password, account.password);
     newclient.id_ignore[0] = -1;
     addClient(newclient);
-    pthread_create(&sendRequestThreads[lastSendRThreadId++], NULL, messageSendRequestHandler, (void *)generateUserConnectionKey(clients[lastClientId - 1]));
+    pthread_create(&sendRequestThreads[lastSendRThreadId++], NULL, messageSendRequestHandler, (void *)(uintptr_t)generateUserConnectionKey(clients[lastClientId - 1]));
     sendUserId(account.type, newclient.id);
 }
 
@@ -314,23 +328,6 @@ void* userRegisterRequestHandler() {
     }
 }
 
-void* printUsers() {
-    while(1) {
-        if(lastClientId > 0) {
-            printf("%s\n", clients[lastClientId-1].name);
-        }
-        printf("%d\n", lastClientId);
-        sleep(1);
-    }
-}
-
-
-// + Zmieniłem tak, żeby tworzyć kolejkę dla każdego klienta
-// + id kolejki to "9<id_użytkownika>"
-
-// Zastanowić się czy na pewno robić kolejkę do każdego tematu, czy lepiej zrobić kolejkę dla każdego klienta
-// Raczej dla każdego klienta, łatwiejsze w implementacji
-
 void loadClientsFromFile() {
     FILE *in;
     in = fopen(clientsFilePath, "a+");
@@ -339,7 +336,7 @@ void loadClientsFromFile() {
         struct client c;
         while(fread(&c, sizeof(struct client), 1, in) > 0) {
             clients[lastClientId++] = c;
-            pthread_create(&sendRequestThreads[lastSendRThreadId++], NULL, messageSendRequestHandler, (void *)generateUserConnectionKey(c));
+            pthread_create(&sendRequestThreads[lastSendRThreadId++], NULL, messageSendRequestHandler, (void *)(uintptr_t)generateUserConnectionKey(c));
         }
     }
 
@@ -353,6 +350,17 @@ void makeFolderData() {
     }
 }
 
+void* refreshUserLoginBlock() {
+    while(1) {
+        sleep(1);
+        for(int i = 0; i < ARRMAX; ++i) {
+            if(loginBlock[i] == 1)
+                printf("Login block for user %s has expired\n", clients[i].name);
+            if(loginBlock[i] > 0) loginBlock[i]--;
+            
+        }
+    }
+}
 
 int main(int argc, char *argv[]) {
     getPaths();
@@ -362,29 +370,21 @@ int main(int argc, char *argv[]) {
 
     pthread_t lrrequest;
     int err_0 = pthread_create(&lrrequest, NULL, userRegisterRequestHandler, NULL);
+    if(err_0) {
+        printf("\nCouldn't open user loin/register thread...\nShutting down...\n");
+        return 0;
+    }
 
-    // pthread_t pusers;
-    // int err_1 = pthread_create(&pusers, NULL, printUsers, NULL);
+    pthread_t rlerror;
+    int err_1 = pthread_create(&rlerror, NULL, refreshUserLoginBlock, NULL);
+    if(err_1) {
+        printf("\nCouldn't open user refresh blocked users array thread...\nShutting down...\n");
+        return 0;
+    }
     
-    
-    // replaced forks with threads, register/login works, authentication works, reading/writing to files works, TODO: creating data folder
-
     while(1) {
         sleep(1);
     }
-
-    // for(int i = 0; i < lastTopicId; ++i) {
-    //     printf("%i\n", topics[i]);
-    // }
-    // addTopic(2137);
-    // for(int i = 0; i < lastTopicId; ++i) {
-    //     printf("%i\n", topics[i]);
-    // }
-
-    // Receiving a message with id 1 = login/register request
-    // Tutaj trzeba dorobić komunikację między procesem potomnym a macierzystym 
-    // Myślałem o pamięci współdzielonej, ale jak nie pójdzie to kolejkami jakoś to zrobimy
- 
 
 
     return 0;

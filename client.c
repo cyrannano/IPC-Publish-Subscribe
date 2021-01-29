@@ -3,6 +3,7 @@
 #include <sys/msg.h>
 #include <stdio.h>
 #include <string.h>
+#include <signal.h>
 #include <fcntl.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -153,11 +154,14 @@ void subscribeTopic() {
     waitForUserInput();
 }
 
+int asyncBlock = 0;
+
 void* asyncMessageReceiver() {
     
     struct omessage _data;
     while(1) {
         if(msgrcv(connection, &_data, sizeof(_data) - sizeof(_data.type), 2, 0) > 0) {
+            while(asyncBlock){}
             clearConsole();
             printf("=================\n");
             printf("Message received\n");
@@ -171,6 +175,47 @@ void* asyncMessageReceiver() {
             printf("Type 0 to continue: \n");
         }
     }
+}
+int interrupt;
+
+void setInterrupt() {
+    interrupt = 1;
+}
+
+void syncMessageReceiver() {
+    clearConsole();
+    printf("Which topic Id would you like to receive?\n");
+    printf("Topic Id: ");
+    int id;
+    scanf("%i%*c", &id);
+    printf("\n\nWaiting for incoming message from topic %i...\n", id);
+    printf("\nPress Ctrl+Z to stop waiting\n\n");
+    
+    asyncBlock = 1;
+    struct omessage _data;
+    int received = 0;
+    interrupt = 0;
+    while(!received) {
+        if(interrupt == 1) break;
+        if(msgrcv(connection, &_data, sizeof(_data) - sizeof(_data.type), 2, 0) > 0) {
+            if(_data.topicId != id) {
+                msgsnd(connection, &_data, sizeof(_data) - sizeof(_data.type), 0);
+                continue;
+            }
+            received = 1;
+            clearConsole();
+            printf("=================\n");
+            printf("Message received\n");
+            printf("=================\n");
+            printf("Topic: %d\n", _data.topicId);
+            printf("Sender: %s\n", _data.senderName);
+            printf("Message:\n");
+            printf("--------------------------------\n");
+            printf("%s\n", _data.content);
+            printf("--------------------------------\n\n");
+        }
+    }
+    waitForUserInput();
 }
 
 void blockUser() {
@@ -217,8 +262,14 @@ void logout() {
     int id;
     while((id = login()) < 0) {
         clearConsole();
-        printf("\nWrong username or password!\n");
-        printf("Oops, let's try again:\n\n");
+        if(id == -9) {
+            printf("\nLogin for current user has been blocked due to too many failed attempts!\n");
+            printf("Wait about 1 minute before the next attempt\n");
+            printf("Oops, let's try again:\n\n");
+        }else {
+            printf("\nWrong username or password!\n");
+            printf("\nAllowed attempts left for this user: %i\n", id+14);
+        }
     }
     currentUser.id = id;
     memcpy(currentUser.id_topic, zeroarray, sizeof(zeroarray));
@@ -226,10 +277,13 @@ void logout() {
     generateConnection();
     
     int err_0 = pthread_create(&aMessageRcv, NULL, asyncMessageReceiver, NULL);
+    if(err_0) {
+        printf("\nCouldn't open message receiver thread...\nShutting down...\n");
+    }
 }
 
 int main(int argc, char *argv[]) {
-    
+    signal(SIGTSTP, setInterrupt);
     logout();
     // if(!fork()) {
     //     asyncMessageReceiver();
@@ -241,12 +295,13 @@ int main(int argc, char *argv[]) {
         printf("What would you like to do?\n");
         printf("[1] Send a message\n");
         printf("[2] Subscribe to a topic\n");
-        printf("[3] Receive messages\n");
+        printf("[3] Wait for a message\n");
         printf("[4] Block user\n");
         printf("[5] Unblock user\n");
         printf("[6] Log out\n");
         printf("[7] Exit\n");
         printf("Select task: ");
+        asyncBlock = 0;
         int d;
         scanf("%i%*c", &d);
         switch(d) {
@@ -257,7 +312,7 @@ int main(int argc, char *argv[]) {
                 subscribeTopic();
                 break;
             case 3:
-                asyncMessageReceiver();
+                syncMessageReceiver();
                 break;
             case 4:
                 blockUser();

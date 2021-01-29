@@ -30,7 +30,7 @@ IPC codes:
 - [x] Server subscription request handler
 - [x] Block request handler
 - [x] Unblock request handler
-- [ ] Blocking client on too many login attempts
+- [x] Blocking client on too many login attempts
 
 ## Client side:
 - [x] User login / registration
@@ -39,12 +39,15 @@ IPC codes:
 - [x] Block user request
 - [x] Unblock user request
 - [x] waitForUserInput() function implementation
-- [ ] Client behaviour on login block 
-- [ ] Improve UI
+- [x] Client behaviour on login block 
+- [x] Improve UI
 
 # Updates:
 ## 29.01.2021 v1
   - Checking whether *serverData* directory exists. If not, it's being created
+  - Blocking user on too many failed login attempts
+  - Cleaned up warnings during compilation
+  - Added sync message receiver
 ## 28.01.2021 v1
   - Added unblock functionality
   - Improved UI
