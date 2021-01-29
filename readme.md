@@ -18,7 +18,7 @@ IPC codes:
 ### Server
 `gcc server.c -o s.out -Wall -lpthread`
 ### Client
-`gcc client.c -o c.out -Wall`
+`gcc client.c -o c.out -Wall -lpthread`
 
 
 # Todo list:
