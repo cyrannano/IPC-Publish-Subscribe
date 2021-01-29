@@ -43,6 +43,8 @@ IPC codes:
 - [ ] Improve UI
 
 # Updates:
+## 29.01.2021 v1
+  - Checking whether *serverData* directory exists. If not, it's being created
 ## 28.01.2021 v1
   - Added unblock functionality
   - Improved UI

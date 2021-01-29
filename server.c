@@ -1,6 +1,7 @@
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/msg.h>
+#include <sys/stat.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <string.h>
@@ -345,9 +346,17 @@ void loadClientsFromFile() {
     fclose(in);
 }
 
+void makeFolderData() {
+    struct stat st = {0};
+    if(stat(dataDir, &st) == -1) {
+        mkdir(dataDir, 0700);
+    }
+}
+
 
 int main(int argc, char *argv[]) {
     getPaths();
+    makeFolderData();
     loadTopicsFromFile();
     loadClientsFromFile();
 
