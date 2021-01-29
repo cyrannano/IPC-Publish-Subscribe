@@ -7,7 +7,8 @@ Server creates two types of communication tunnels:
 IPC codes:
 | Code | Description | Source | Tunnel |
 |---|---|---|---|
-|0|User register / login request| Server | Main tunnel |
+|*random generated*|User register / login request| Client | Main tunnel |
+|*received from user*|User id assignment| Server | Main tunnel |
 |1|User send message request | Client | Private tunnel |
 |2|Incoming message | Server | Private tunnel |
 |3|New topic subscription | Client | Private tunnel |
@@ -18,7 +19,7 @@ IPC codes:
 ### Server
 `gcc server.c -o s.out -Wall -lpthread`
 ### Client
-`gcc client.c -o c.out -Wall`
+`gcc client.c -o c.out -Wall -lpthread`
 
 
 # Todo list:
@@ -43,6 +44,9 @@ IPC codes:
 - [x] Improve UI
 
 # Updates:
+## 29.01.2021 v2
+  - Cleaned files
+  - Added variable logging in server
 ## 29.01.2021 v1
   - Checking whether *serverData* directory exists. If not, it's being created
   - Blocking user on too many failed login attempts

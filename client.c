@@ -27,11 +27,8 @@ void clearConsole() {
 
 void waitForUserInput() {
     printf("\nPress <enter> to continue...\n");
-    // char dummy;
     fflush(stdout);
     fgetc(stdin);
-    // scanf(" %[^\n]", dummy);
-    // Generuje błędy, potrzebna inna implementacja
 }
 
 void generateConnection() {
@@ -56,14 +53,11 @@ int registerUser(char uname[ARRMAX], char pass[PASSMAX]) {
     strcpy(userRemote.name, uname);
     strcpy(userRemote.password, pass);
     
-    // printf("Hash: %d\n", (int)userRemote.type);
-    // printf("%d\n", sizeof(userRemote) - sizeof(userRemote.type));
     msgsnd(mid, &userRemote, sizeof(userRemote) - sizeof(userRemote.type), 0);
 
     struct idData uid_data;
 
     if(msgrcv(mid, &uid_data, sizeof(uid_data.idx), userRemote.type, 0) > 0) {
-        // printf("Assigned ID: %d\n", uid_data.idx);
         return uid_data.idx;
     }
     return -1;
@@ -79,37 +73,10 @@ int login() {
     return registerUser(currentUser.name, pass);
 }
 
-// int register() {
-//     char pass[PASSMAX];
-//     char pass2[PASSMAX];
-//     printf("username: ");
-//     scanf("%s", currentUser.name);    
-    
-//     do {
-//         printf("password: ");
-//         scanf("%s", pass);
-//         printf("confirm password: ");
-//         scanf("%s", pass2);
-//     }while(strcmp(pass, pass2) != 0)
-    
-//     printf("Select topics Id you want to subscribe to (type -1 when youre done): ");
-//     int idt = 0;
-//     for(int i = 0; i < ARRMAX; ++i) {
-//         int id; 
-//         if(id = -1) break;
-//         scanf("%i", &id);
-        
-//     }
-//     return registerUser(currentUser.name, pass);
-// }
-
 void sendMessage() {
     clearConsole();
     printf("Which topic ID would you like to use?\n");
-    // for(int i = 0; i < TOPICSMAX; ++i) {
-    //     if(currentUser.id_topic[i] == 0) break;
-    //     printf("%d\n", currentUser.id_topic[i]);
-    // }
+
     int topic;
     printf("Select one: ");
     scanf("%d", &topic);
@@ -119,8 +86,7 @@ void sendMessage() {
     printf("Write a message: ");
     fflush(stdout);
     scanf(" %[^\n]%*c", _data.content);
-    // printf("Write a message: ");
-    // scanf("%s", _data.content);
+
 
     _data.type = 1;
     _data.topicId = topic;
@@ -285,9 +251,6 @@ void logout() {
 int main(int argc, char *argv[]) {
     signal(SIGTSTP, setInterrupt);
     logout();
-    // if(!fork()) {
-    //     asyncMessageReceiver();
-    // }
 
     while(1) {
         clearConsole();
@@ -330,12 +293,3 @@ int main(int argc, char *argv[]) {
 
     return 0;
 }
-
-
-
-
-
-// 0 - REJESTRACJA UŻYTKOWNIKA
-// 1 - REQUEST WYSŁANIA WIADOMOŚCI
-// 2 - WIADOMOŚĆ PRZYCHODZĄCA
-// 3 - DODANIE NOWEGO TEMATU DO SUBSKRYBCJI
